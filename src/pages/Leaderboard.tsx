@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Trophy, BarChart3, TrendingUp } from "lucide-react";
-import AnimatedLogo from "@/components/AnimatedLogo";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -122,8 +121,8 @@ const Leaderboard = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10">
-              <AnimatedLogo />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-warning/30 to-accent/20 flex items-center justify-center border border-warning/30">
+              <Trophy className="w-5 h-5 text-warning" />
             </div>
             <h1 className="text-xl font-bold">Leaderboard</h1>
           </div>

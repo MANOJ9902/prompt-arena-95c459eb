@@ -3,9 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, LogIn, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, LogIn, AlertCircle, Clock, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import AnimatedLogo from "@/components/AnimatedLogo";
 import { supabase } from "@/integrations/supabase/client";
 
 const CompetitionLogin = () => {
@@ -198,8 +197,10 @@ const CompetitionLogin = () => {
       <main className="relative z-10 flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-4">
-            <AnimatedLogo />
-            <h1 className="text-3xl font-bold mt-6">
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center border border-primary/30">
+              <Zap className="w-10 h-10 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold mt-4">
               {competition?.name || 'Loading...'}
             </h1>
             <p className="text-muted-foreground">
