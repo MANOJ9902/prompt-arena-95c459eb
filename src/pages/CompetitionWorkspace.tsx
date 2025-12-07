@@ -7,12 +7,12 @@ import {
   FileText, 
   Download, 
   Paperclip,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Timer from "@/components/Timer";
 import FileUpload from "@/components/FileUpload";
-import AnimatedLogo from "@/components/AnimatedLogo";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -200,8 +200,10 @@ const CompetitionWorkspace = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="glass-card p-8 max-w-md w-full text-center space-y-6">
-          <AnimatedLogo />
-          <h1 className="text-2xl font-bold mt-6">
+          <div className="w-16 h-16 mx-auto rounded-full bg-primary/20 flex items-center justify-center">
+            {submitted ? <Send className="w-8 h-8 text-primary" /> : <AlertTriangle className="w-8 h-8 text-warning" />}
+          </div>
+          <h1 className="text-2xl font-bold">
             {submitted ? "Submission Complete!" : "Time Expired"}
           </h1>
           <p className="text-muted-foreground">
@@ -223,8 +225,8 @@ const CompetitionWorkspace = () => {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8">
-              <AnimatedLogo />
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-primary" />
             </div>
             <div>
               <h1 className="font-semibold text-foreground">{competition?.name}</h1>
