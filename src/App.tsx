@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import CompetitionLogin from "./pages/CompetitionLogin";
 import CompetitionWorkspace from "./pages/CompetitionWorkspace";
 import Leaderboard from "./pages/Leaderboard";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/competition/:competitionId/workspace" element={<CompetitionWorkspace />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/leaderboard/:competitionId" element={<Leaderboard />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
