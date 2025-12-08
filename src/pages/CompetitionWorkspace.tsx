@@ -159,6 +159,32 @@ const CompetitionWorkspace = () => {
 
       if (updateError) throw updateError;
 
+      // Add/update leaderboard entry
+      const { data: existingEntry } = await supabase
+        .from('leaderboard')
+        .select('id, overall_score')
+        .eq('lan_id', lanId)
+        .eq('competition_id', competitionId)
+        .single();
+
+      if (existingEntry) {
+        // Update existing entry
+        await supabase
+          .from('leaderboard')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', existingEntry.id);
+      } else {
+        // Create new leaderboard entry
+        await supabase
+          .from('leaderboard')
+          .insert({
+            lan_id: lanId,
+            competition_id: competitionId,
+            score: 0, // Score will be updated by admin
+            overall_score: 0,
+          });
+      }
+
       // Update local storage
       const session = localStorage.getItem(`competition_session_${competitionId}`);
       if (session) {
