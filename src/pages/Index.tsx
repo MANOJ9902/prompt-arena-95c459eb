@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Trophy, Zap, Clock, CheckCircle, BarChart3 } from "lucide-react";
+import { Trophy, Zap, Clock, CheckCircle, BarChart3, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import CompetitionCard from "@/components/CompetitionCard";
@@ -101,16 +101,26 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Leaderboard Button */}
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => navigate('/leaderboard')}
-              className="mt-4"
-            >
-              <BarChart3 className="w-5 h-5 mr-2" />
-              View Global Leaderboard
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex flex-wrap justify-center gap-4 mt-4">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/leaderboard')}
+              >
+                <BarChart3 className="w-5 h-5 mr-2" />
+                View Leaderboard
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/admin')}
+                className="border-destructive/50 hover:bg-destructive/10"
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                Admin Panel
+              </Button>
+            </div>
           </div>
         </div>
       </header>
