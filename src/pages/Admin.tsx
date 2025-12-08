@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -12,6 +14,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   Shield,
   Database,
@@ -21,6 +37,7 @@ import {
   ExternalLink,
   Save,
   RefreshCw,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +53,23 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<Record<string, { score: number; overall_score: number }>>({});
   const [saving, setSaving] = useState(false);
+
+  // Form states
+  const [compDialogOpen, setCompDialogOpen] = useState(false);
+  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
+  const [newComp, setNewComp] = useState({
+    name: '',
+    description: '',
+    start_date: '',
+    end_date: '',
+    status: 'upcoming' as 'upcoming' | 'ongoing' | 'completed',
+    time_limit_minutes: 15
+  });
+  const [newQuestion, setNewQuestion] = useState({
+    competition_id: '',
+    title: '',
+    description: ''
+  });
 
   useEffect(() => {
     fetchAllData();
@@ -99,7 +133,7 @@ const Admin = () => {
       
       toast({
         title: "Success",
-        description: "Scores updated successfully",
+        description: "Scores updated and leaderboard refreshed",
       });
       
       fetchAllData();
@@ -112,6 +146,94 @@ const Admin = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const createCompetition = async () => {
+    if (!newComp.name || !newComp.start_date || !newComp.end_date) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('competitions').insert({
+        name: newComp.name,
+        description: newComp.description || null,
+        start_date: new Date(newComp.start_date).toISOString(),
+        end_date: new Date(newComp.end_date).toISOString(),
+        status: newComp.status,
+        time_limit_minutes: newComp.time_limit_minutes
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Competition created successfully",
+      });
+
+      setNewComp({
+        name: '',
+        description: '',
+        start_date: '',
+        end_date: '',
+        status: 'upcoming',
+        time_limit_minutes: 15
+      });
+      setCompDialogOpen(false);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error creating competition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create competition",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createQuestion = async () => {
+    if (!newQuestion.competition_id || !newQuestion.title || !newQuestion.description) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('questions').insert({
+        competition_id: newQuestion.competition_id,
+        title: newQuestion.title,
+        description: newQuestion.description
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Question created successfully",
+      });
+
+      setNewQuestion({
+        competition_id: '',
+        title: '',
+        description: ''
+      });
+      setQuestionDialogOpen(false);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error creating question:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create question",
+        variant: "destructive",
+      });
     }
   };
 
@@ -164,7 +286,7 @@ const Admin = () => {
 
       {/* Main Content */}
       <main className="relative z-10 container mx-auto px-4 py-8">
-        <Tabs defaultValue="participants" className="space-y-6">
+        <Tabs defaultValue="competitions" className="space-y-6">
           <TabsList className="grid grid-cols-4 w-full max-w-2xl">
             <TabsTrigger value="competitions" className="gap-2">
               <Database className="w-4 h-4" />
@@ -187,7 +309,94 @@ const Admin = () => {
           {/* Competitions Tab */}
           <TabsContent value="competitions">
             <div className="glass-card p-6">
-              <h2 className="text-xl font-semibold mb-4">Competitions ({competitions.length})</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Competitions ({competitions.length})</h2>
+                <Dialog open={compDialogOpen} onOpenChange={setCompDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add Competition
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create New Competition</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="comp-name">Name *</Label>
+                        <Input
+                          id="comp-name"
+                          value={newComp.name}
+                          onChange={(e) => setNewComp(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Competition name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="comp-desc">Description</Label>
+                        <Textarea
+                          id="comp-desc"
+                          value={newComp.description}
+                          onChange={(e) => setNewComp(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Competition description"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="comp-start">Start Date *</Label>
+                          <Input
+                            id="comp-start"
+                            type="datetime-local"
+                            value={newComp.start_date}
+                            onChange={(e) => setNewComp(prev => ({ ...prev, start_date: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="comp-end">End Date *</Label>
+                          <Input
+                            id="comp-end"
+                            type="datetime-local"
+                            value={newComp.end_date}
+                            onChange={(e) => setNewComp(prev => ({ ...prev, end_date: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="comp-status">Status</Label>
+                          <Select
+                            value={newComp.status}
+                            onValueChange={(value: 'upcoming' | 'ongoing' | 'completed') => 
+                              setNewComp(prev => ({ ...prev, status: value }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="upcoming">Upcoming</SelectItem>
+                              <SelectItem value="ongoing">Ongoing</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="comp-time">Time Limit (min)</Label>
+                          <Input
+                            id="comp-time"
+                            type="number"
+                            value={newComp.time_limit_minutes}
+                            onChange={(e) => setNewComp(prev => ({ ...prev, time_limit_minutes: parseInt(e.target.value) || 15 }))}
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={createCompetition} className="w-full">
+                        Create Competition
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -226,7 +435,64 @@ const Admin = () => {
           {/* Questions Tab */}
           <TabsContent value="questions">
             <div className="glass-card p-6">
-              <h2 className="text-xl font-semibold mb-4">Questions ({questions.length})</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Questions ({questions.length})</h2>
+                <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add Question
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Create New Question</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="q-comp">Competition *</Label>
+                        <Select
+                          value={newQuestion.competition_id}
+                          onValueChange={(value) => setNewQuestion(prev => ({ ...prev, competition_id: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select competition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {competitions.map((comp) => (
+                              <SelectItem key={comp.id} value={comp.id}>
+                                {comp.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="q-title">Title *</Label>
+                        <Input
+                          id="q-title"
+                          value={newQuestion.title}
+                          onChange={(e) => setNewQuestion(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Question title"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="q-desc">Description *</Label>
+                        <Textarea
+                          id="q-desc"
+                          value={newQuestion.description}
+                          onChange={(e) => setNewQuestion(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Question description"
+                          rows={5}
+                        />
+                      </div>
+                      <Button onClick={createQuestion} className="w-full">
+                        Create Question
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -329,6 +595,9 @@ const Admin = () => {
                   Update Scores
                 </Button>
               </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Edit scores below and click "Update Scores" to save changes. The leaderboard will automatically reflect the updated scores.
+              </p>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
