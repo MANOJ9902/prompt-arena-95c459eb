@@ -93,7 +93,9 @@ export type Database = {
           id: string
           lan_id: string
           output_file_url: string | null
+          output_text: string | null
           prompt_file_url: string | null
+          prompt_text: string | null
           question_id: string | null
           score: number | null
           start_time: string | null
@@ -106,7 +108,9 @@ export type Database = {
           id?: string
           lan_id: string
           output_file_url?: string | null
+          output_text?: string | null
           prompt_file_url?: string | null
+          prompt_text?: string | null
           question_id?: string | null
           score?: number | null
           start_time?: string | null
@@ -119,7 +123,9 @@ export type Database = {
           id?: string
           lan_id?: string
           output_file_url?: string | null
+          output_text?: string | null
           prompt_file_url?: string | null
+          prompt_text?: string | null
           question_id?: string | null
           score?: number | null
           start_time?: string | null

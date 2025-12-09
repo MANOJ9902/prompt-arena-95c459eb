@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Trophy, Zap, Clock, CheckCircle, BarChart3, Shield } from "lucide-react";
+import { Trophy, Zap, Clock, CheckCircle, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedLogo from "@/components/AnimatedLogo";
 import CompetitionCard from "@/components/CompetitionCard";
@@ -55,16 +55,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Admin Button - Top Right */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => navigate('/admin')}
-        className="fixed top-4 right-4 z-50 w-10 h-10 rounded-lg bg-card/80 backdrop-blur-sm border border-border/50 hover:bg-destructive/10 hover:border-destructive/50"
-      >
-        <Shield className="w-5 h-5 text-destructive" />
-      </Button>
-
       {/* Hero Section */}
       <header className="relative overflow-hidden">
         {/* Background effects */}

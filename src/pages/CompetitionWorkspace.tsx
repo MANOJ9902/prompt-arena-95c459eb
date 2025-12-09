@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { 
   LogOut, 
   Send, 
@@ -12,7 +14,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Timer from "@/components/Timer";
-import FileUpload from "@/components/FileUpload";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -33,8 +34,8 @@ const CompetitionWorkspace = () => {
   
   const [question, setQuestion] = useState<any>(null);
   const [competition, setCompetition] = useState<any>(null);
-  const [promptFile, setPromptFile] = useState<File | null>(null);
-  const [outputFile, setOutputFile] = useState<File | null>(null);
+  const [promptText, setPromptText] = useState("");
+  const [outputText, setOutputText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [timeExpired, setTimeExpired] = useState(false);
@@ -79,7 +80,7 @@ const CompetitionWorkspace = () => {
     try {
       const { data, error } = await supabase
         .from('participants')
-        .select('submitted')
+        .select('submitted, prompt_text, output_text')
         .eq('lan_id', lanId)
         .eq('competition_id', competitionId)
         .single();
@@ -88,6 +89,9 @@ const CompetitionWorkspace = () => {
       if (data?.submitted) {
         setSubmitted(true);
       }
+      // Load existing text if any
+      if (data?.prompt_text) setPromptText(data.prompt_text);
+      if (data?.output_text) setOutputText(data.output_text);
     } catch (error) {
       console.error('Error checking submission status:', error);
     }
@@ -96,8 +100,8 @@ const CompetitionWorkspace = () => {
   const handleTimeUp = useCallback(async () => {
     setTimeExpired(true);
     
-    // Auto-submit if files are present
-    if (promptFile && outputFile && !submitted) {
+    // Auto-submit whatever data is available
+    if (!submitted) {
       await handleSubmit(true);
     } else {
       toast({
@@ -105,53 +109,19 @@ const CompetitionWorkspace = () => {
         description: "Your submission window has closed.",
         variant: "destructive",
       });
-      
-      // Mark as expired in storage
-      const session = localStorage.getItem(`competition_session_${competitionId}`);
-      if (session) {
-        const sessionData = JSON.parse(session);
-        sessionData.expired = true;
-        localStorage.setItem(`competition_session_${competitionId}`, JSON.stringify(sessionData));
-      }
     }
-  }, [promptFile, outputFile, submitted, competitionId]);
+  }, [submitted, promptText, outputText, competitionId, lanId]);
 
   const handleSubmit = async (isAutoSubmit = false) => {
-    if (!promptFile || !outputFile) {
-      toast({
-        title: "Missing Files",
-        description: "Please upload both prompt and output files",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSubmitting(true);
 
     try {
-      // Upload files to storage
-      const timestamp = Date.now();
-      const promptPath = `${competitionId}/${lanId}/prompt_${timestamp}_${promptFile.name}`;
-      const outputPath = `${competitionId}/${lanId}/output_${timestamp}_${outputFile.name}`;
-
-      const [promptUpload, outputUpload] = await Promise.all([
-        supabase.storage.from('submissions').upload(promptPath, promptFile),
-        supabase.storage.from('submissions').upload(outputPath, outputFile),
-      ]);
-
-      if (promptUpload.error) throw promptUpload.error;
-      if (outputUpload.error) throw outputUpload.error;
-
-      // Get public URLs
-      const promptUrl = supabase.storage.from('submissions').getPublicUrl(promptPath).data.publicUrl;
-      const outputUrl = supabase.storage.from('submissions').getPublicUrl(outputPath).data.publicUrl;
-
-      // Update participant record
+      // Update participant record with text submissions
       const { error: updateError } = await supabase
         .from('participants')
         .update({
-          prompt_file_url: promptUrl,
-          output_file_url: outputUrl,
+          prompt_text: promptText,
+          output_text: outputText,
           submitted: true,
         })
         .eq('lan_id', lanId)
@@ -165,22 +135,20 @@ const CompetitionWorkspace = () => {
         .select('id, overall_score')
         .eq('lan_id', lanId)
         .eq('competition_id', competitionId)
-        .single();
+        .maybeSingle();
 
       if (existingEntry) {
-        // Update existing entry
         await supabase
           .from('leaderboard')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', existingEntry.id);
       } else {
-        // Create new leaderboard entry
         await supabase
           .from('leaderboard')
           .insert({
             lan_id: lanId,
             competition_id: competitionId,
-            score: 0, // Score will be updated by admin
+            score: 0,
             overall_score: 0,
           });
       }
@@ -198,7 +166,7 @@ const CompetitionWorkspace = () => {
       toast({
         title: isAutoSubmit ? "Auto-Submitted!" : "Submitted!",
         description: isAutoSubmit 
-          ? "Your files were automatically submitted as time ran out."
+          ? "Your answers were automatically submitted as time ran out."
           : "Your submission has been recorded successfully.",
       });
 
@@ -235,7 +203,7 @@ const CompetitionWorkspace = () => {
           <p className="text-muted-foreground">
             {submitted 
               ? "Thank you for participating. Your submission has been recorded."
-              : "Your time has expired. You can no longer submit."}
+              : "Your time has expired. Your answers have been auto-submitted."}
           </p>
           <Button onClick={() => navigate('/')} className="w-full">
             Return to Home
@@ -297,7 +265,7 @@ const CompetitionWorkspace = () => {
                   <div className="pt-4 border-t border-border/50">
                     <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                       <Paperclip className="w-4 h-4" />
-                      Attachments
+                      Reference Files
                     </h4>
                     <div className="space-y-2">
                       {question.attachments.map((attachment: any, index: number) => (
@@ -332,28 +300,40 @@ const CompetitionWorkspace = () => {
               </div>
               <div>
                 <h2 className="text-xl font-semibold">Your Submission</h2>
-                <p className="text-sm text-muted-foreground">Upload your files below</p>
+                <p className="text-sm text-muted-foreground">Enter your answers below</p>
               </div>
             </div>
 
             <div className="space-y-6">
-              <FileUpload
-                label="1. Prompt File"
-                onFileSelect={setPromptFile}
-                disabled={submitting}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="prompt" className="text-base font-medium">1. Prompt</Label>
+                <Textarea
+                  id="prompt"
+                  placeholder="Enter your prompt here..."
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  disabled={submitting}
+                  className="min-h-[150px] resize-none"
+                />
+              </div>
 
-              <FileUpload
-                label="2. Output File"
-                onFileSelect={setOutputFile}
-                disabled={submitting}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="output" className="text-base font-medium">2. Output</Label>
+                <Textarea
+                  id="output"
+                  placeholder="Enter your output/solution here..."
+                  value={outputText}
+                  onChange={(e) => setOutputText(e.target.value)}
+                  disabled={submitting}
+                  className="min-h-[150px] resize-none"
+                />
+              </div>
 
               <div className="pt-4 border-t border-border/50">
                 <Button
                   className="w-full h-12 text-lg"
                   onClick={() => handleSubmit(false)}
-                  disabled={!promptFile || !outputFile || submitting}
+                  disabled={submitting}
                 >
                   {submitting ? (
                     <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
