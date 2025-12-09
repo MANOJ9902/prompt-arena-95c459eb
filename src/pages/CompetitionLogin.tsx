@@ -48,19 +48,13 @@ const CompetitionLogin = () => {
       const now = new Date().getTime();
       const end = new Date(endTime).getTime();
       
-      if (submitted) {
-        setError("You have already submitted your solution. You cannot login again.");
-        return;
-      }
-      
-      if (now < end) {
-        // Session still valid, redirect to workspace
+      if (now < end && !submitted) {
+        // Session still valid and not submitted, redirect to workspace
         navigate(`/competition/${competitionId}/workspace`, { 
           state: { lanId, endTime } 
         });
-      } else {
-        setError("Your time has expired. You cannot login again.");
       }
+      // Don't show error for existing sessions - just let them try to login again
     }
   };
 
@@ -76,7 +70,7 @@ const CompetitionLogin = () => {
     setLoading(true);
 
     try {
-      // Check if participant already exists and has submitted or expired
+      // Check if participant already exists
       const { data: existingParticipant, error: fetchError } = await supabase
         .from('participants')
         .select('*')
@@ -87,8 +81,9 @@ const CompetitionLogin = () => {
       if (fetchError) throw fetchError;
 
       if (existingParticipant) {
+        // Check if already submitted - show "Already used" message
         if (existingParticipant.submitted) {
-          setError("You have already submitted your solution. You cannot login again.");
+          setError("This LAN ID has already been used for this competition.");
           setLoading(false);
           return;
         }
@@ -96,13 +91,14 @@ const CompetitionLogin = () => {
         const now = new Date().getTime();
         const endTime = new Date(existingParticipant.end_time).getTime();
         
+        // Check if time expired
         if (now > endTime) {
-          setError("Your time has expired. You cannot login again.");
+          setError("This LAN ID has already been used for this competition.");
           setLoading(false);
           return;
         }
 
-        // Resume existing session
+        // Resume existing session (within time and not submitted)
         localStorage.setItem(`competition_session_${competitionId}`, JSON.stringify({
           lanId: existingParticipant.lan_id,
           endTime: existingParticipant.end_time,
@@ -229,9 +225,12 @@ const CompetitionLogin = () => {
                 type="text"
                 placeholder="Enter your LAN ID"
                 value={lanId}
-                onChange={(e) => setLanId(e.target.value)}
+                onChange={(e) => {
+                  setLanId(e.target.value);
+                  setError(""); // Clear error when typing
+                }}
                 className="h-12 text-lg"
-                disabled={loading || !!error}
+                disabled={loading}
                 autoFocus
               />
             </div>
@@ -239,7 +238,7 @@ const CompetitionLogin = () => {
             <Button
               type="submit"
               className="w-full h-12 text-lg"
-              disabled={loading || !!error}
+              disabled={loading}
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
