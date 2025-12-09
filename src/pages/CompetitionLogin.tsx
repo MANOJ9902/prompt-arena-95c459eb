@@ -114,14 +114,19 @@ const CompetitionLogin = () => {
         return;
       }
 
-      // Get question for this competition
-      const { data: question, error: questionError } = await supabase
+      // Get questions for this competition (pick first one or random)
+      const { data: questions, error: questionError } = await supabase
         .from('questions')
         .select('*')
-        .eq('competition_id', competitionId)
-        .single();
+        .eq('competition_id', competitionId);
 
       if (questionError) throw questionError;
+      if (!questions || questions.length === 0) {
+        throw new Error('No questions available for this competition');
+      }
+      
+      // Pick a random question
+      const question = questions[Math.floor(Math.random() * questions.length)];
 
       // Calculate end time
       const startTime = new Date();

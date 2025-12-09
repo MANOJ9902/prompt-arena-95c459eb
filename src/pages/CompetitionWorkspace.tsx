@@ -58,14 +58,17 @@ const CompetitionWorkspace = () => {
     try {
       const [compRes, questionRes] = await Promise.all([
         supabase.from('competitions').select('*').eq('id', competitionId).single(),
-        supabase.from('questions').select('*').eq('competition_id', competitionId).single(),
+        supabase.from('questions').select('*').eq('competition_id', competitionId),
       ]);
 
       if (compRes.error) throw compRes.error;
       if (questionRes.error) throw questionRes.error;
 
       setCompetition(compRes.data);
-      setQuestion(questionRes.data);
+      // Use first question if multiple exist
+      if (questionRes.data && questionRes.data.length > 0) {
+        setQuestion(questionRes.data[0]);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -116,20 +119,24 @@ const CompetitionWorkspace = () => {
     setSubmitting(true);
 
     try {
-      // Update participant record with text submissions
+      // Generate random marks between 50-100 for evaluation
+      const randomMarks = Math.floor(Math.random() * 51) + 50;
+      
+      // Update participant record with text submissions and marks
       const { error: updateError } = await supabase
         .from('participants')
         .update({
           prompt_text: promptText,
           output_text: outputText,
           submitted: true,
+          score: randomMarks,
         })
         .eq('lan_id', lanId)
         .eq('competition_id', competitionId);
 
       if (updateError) throw updateError;
 
-      // Add/update leaderboard entry
+      // Add/update leaderboard entry with the marks
       const { data: existingEntry } = await supabase
         .from('leaderboard')
         .select('id, overall_score')
@@ -140,16 +147,28 @@ const CompetitionWorkspace = () => {
       if (existingEntry) {
         await supabase
           .from('leaderboard')
-          .update({ updated_at: new Date().toISOString() })
+          .update({ 
+            score: randomMarks,
+            overall_score: existingEntry.overall_score + randomMarks,
+            updated_at: new Date().toISOString() 
+          })
           .eq('id', existingEntry.id);
       } else {
+        // Check if user has previous overall score from other competitions
+        const { data: prevEntries } = await supabase
+          .from('leaderboard')
+          .select('overall_score')
+          .eq('lan_id', lanId);
+        
+        const previousOverall = prevEntries?.reduce((sum, e) => sum + e.overall_score, 0) || 0;
+        
         await supabase
           .from('leaderboard')
           .insert({
             lan_id: lanId,
             competition_id: competitionId,
-            score: 0,
-            overall_score: 0,
+            score: randomMarks,
+            overall_score: previousOverall + randomMarks,
           });
       }
 
